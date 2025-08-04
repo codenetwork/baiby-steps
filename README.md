@@ -33,6 +33,15 @@ We welcome contributors of all skill levels!
 - Improve the training/evaluation scripts
 - Visualize reward curves or gait animations
 
+---
+## 📖 Recommended Learning
+We'll be using the gymnasium library to create our environments. I recommend reading the gymnasium documentation and following the steps to create some of the simpler pre-existing environments - 
+[here](https://gymnasium.farama.org/introduction/basic_usage/)
+
+Here are some good YouTube videos too:
+- [The FASTEST introduction to Reinforcement Learning on the internet
+](https://www.youtube.com/watch?v=VnpRp7ZglfA&t=4155s)
+
 ## 🔧 How to Get Started
 
 ### 1. Clone the Repository
