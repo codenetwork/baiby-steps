@@ -1,0 +1,16 @@
+name: Discord Notification
+on: push  # Triggers on every push
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        uses: Ilshidur/action-discord@master
+        with:
+          args: |
+            **New commit in ${{ github.repository }}**  
+            > **Author:** ${{ github.actor }}  
+            > **Message:** ${{ github.event.head_commit.message }}  
+            > [View Commit](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
