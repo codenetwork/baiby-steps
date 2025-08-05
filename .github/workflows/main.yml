@@ -11,4 +11,4 @@ jobs:
             New commit by **${{ github.actor }}** in [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}):
             > ${{ github.event.head_commit.message }}
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ https://discord.com/api/webhooks/1402231972364812308/Jjq_sle0vM96bPCo5aW3y8WkKDY4gJdd71zObPLoPcXXiWQxfSom1ISow7rpaU4JxeIN }}
