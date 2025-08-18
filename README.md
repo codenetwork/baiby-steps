@@ -38,6 +38,8 @@ We welcome contributors of all skill levels!
 We'll be using the gymnasium library to create our environments. I recommend reading the gymnasium documentation and following the steps to create some of the simpler pre-existing environments - 
 [here](https://gymnasium.farama.org/introduction/basic_usage/)
 
+You can find some info on creating URDF robots [here](https://articulatedrobotics.xyz/tutorials/ready-for-ros/urdf/#overall-structure---links-and-joints)
+
 Here are some good YouTube videos too:
 - [The FASTEST introduction to Reinforcement Learning on the internet
 ](https://www.youtube.com/watch?v=VnpRp7ZglfA&t=4155s)
