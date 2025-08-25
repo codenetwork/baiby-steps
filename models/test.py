@@ -8,7 +8,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 def train():
     env = DummyVecEnv([lambda: simpleBipedEnv(render=False)])
     model = PPO("MlpPolicy", env, verbose=1)
-    model.learn(total_timesteps=5000)
+    model.learn(total_timesteps=100000)
     model.save("models/humanoid_ppo")
     env.close()
 
@@ -34,5 +34,3 @@ def run():
 
 train()
 #run()
-
-input("Press Enter to exit and close the visualization window...")

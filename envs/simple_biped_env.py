@@ -5,13 +5,13 @@ import pybullet_data
 import numpy as np
 
 class simpleBipedEnv(gym.Env):
-    def __init__(self, render=False, max_steps=1000):
+    def __init__(self, render=False, max_steps=10000):
         super(simpleBipedEnv, self).__init__()
         self.render_mode = render
         self.physicsClient = p.connect(p.GUI if render else p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        num_joints = 2  # left_hip, right_hip
+        num_joints = 4  # left_hip, right_hip, left_knee, right_knee
         self.action_space = spaces.Box(low=-1, high=1, shape=(num_joints,), dtype=np.float32)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(2*num_joints + 6,), dtype=np.float32)
         self.max_steps = max_steps
@@ -77,6 +77,8 @@ class simpleBipedEnv(gym.Env):
         forward_reward = base_vel[0]        # reward x velocity
         alive_bonus = 0.5                   # encourage staying up
         torque_penalty = 0.001 * np.sum(np.square(self.last_action))
+
+        print(forward_reward, alive_bonus, torque_penalty)
 
         return forward_reward + alive_bonus - torque_penalty
 
