@@ -1,0 +1,98 @@
+import gymnasium as gym
+from gymnasium import spaces
+import pybullet as p
+import pybullet_data
+import numpy as np
+
+class simpleBipedEnv(gym.Env):
+    def __init__(self, render=False, max_steps=1000):
+        super(simpleBipedEnv, self).__init__()
+        self.render_mode = render
+        self.physicsClient = p.connect(p.GUI if render else p.DIRECT)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+        num_joints = 2  # left_hip, right_hip
+        self.action_space = spaces.Box(low=-1, high=1, shape=(num_joints,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(2*num_joints + 6,), dtype=np.float32)
+        self.max_steps = max_steps
+        self.current_step = 0
+        self.last_action = None
+
+
+
+    def reset(self, seed=None, options=None):
+        p.resetSimulation()
+        p.setGravity(0, 0, -9.8)
+        plane_id = p.loadURDF("plane.urdf")
+        self.robot_id = p.loadURDF("walkers/simple_biped.urdf", [0, 0, 1.0])
+        base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
+        print(f"Robot spawned at position: {base_pos}")
+        self.current_step = 0
+        return self._get_obs(), {}
+
+    def step(self, action):
+        num_joints = p.getNumJoints(self.robot_id)
+        if np.isscalar(action) or (isinstance(action, np.ndarray) and action.shape == (1,)):
+            action = np.full((num_joints,), action if np.isscalar(action) else action[0], dtype=np.float32)
+        else:
+            action = np.asarray(action, dtype=np.float32)
+            if action.shape[0] != num_joints:
+                raise ValueError(f"Action shape {action.shape} does not match number of joints {num_joints}")
+            
+        self.last_action = action
+
+        p.setJointMotorControlArray(
+            bodyUniqueId=self.robot_id,
+            jointIndices=list(range(num_joints)),
+            controlMode=p.TORQUE_CONTROL,
+            forces=action.tolist()
+        )
+        p.stepSimulation()
+        obs = self._get_obs()
+        reward = self._compute_reward()
+        done = self._check_termination()
+
+        self.current_step += 1
+        truncated = self.current_step >= self.max_steps
+
+        return obs, reward, done, truncated, {}
+
+    def _get_obs(self):
+        joint_states = p.getJointStates(self.robot_id, range(p.getNumJoints(self.robot_id)))
+        joint_positions = [state[0] for state in joint_states]
+        joint_velocities = [state[1] for state in joint_states]
+        base_pos, base_ori = p.getBasePositionAndOrientation(self.robot_id)
+        base_vel, base_ang_vel = p.getBaseVelocity(self.robot_id)
+        return np.array(joint_positions + joint_velocities + list(base_pos) + list(base_vel), dtype=np.float32)
+
+
+    def _check_termination(self):
+        base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
+        return base_pos[2] < 0.5  # fallen
+
+    def _compute_reward(self):
+        base_pos, _ = p.getBasePositionAndOrientation(self.robot_id)
+        base_vel, _ = p.getBaseVelocity(self.robot_id)
+
+        forward_reward = base_vel[0]        # reward x velocity
+        alive_bonus = 0.5                   # encourage staying up
+        torque_penalty = 0.001 * np.sum(np.square(self.last_action))
+
+        return forward_reward + alive_bonus - torque_penalty
+
+
+    def render(self):
+        if self.render_mode:
+            if hasattr(self, 'robot_id'):
+                base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
+                p.resetDebugVisualizerCamera(
+                    cameraDistance=2.0,
+                    cameraYaw=45,
+                    cameraPitch=-30,
+                    cameraTargetPosition=base_pos
+                )
+        else:
+            pass
+
+    def close(self):
+        p.disconnect()
