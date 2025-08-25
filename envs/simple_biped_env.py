@@ -9,6 +9,7 @@ class simpleBipedEnv(gym.Env):
         super(simpleBipedEnv, self).__init__()
         self.render_mode = render
         self.physicsClient = p.connect(p.GUI if render else p.DIRECT)
+        self.robot_id = p.loadURDF("walkers/simple_biped.urdf", [0, 0, 1.0])
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
         num_joints = 4  # left_hip, right_hip, left_knee, right_knee
@@ -21,12 +22,10 @@ class simpleBipedEnv(gym.Env):
 
 
     def reset(self, seed=None, options=None):
-        p.resetSimulation()
+        p.resetBasePositionAndOrientation(self.robot_id, [0,0,1], [0,0,0,1])
         p.setGravity(0, 0, -9.8)
         plane_id = p.loadURDF("plane.urdf")
-        self.robot_id = p.loadURDF("walkers/simple_biped.urdf", [0, 0, 1.0])
         base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
-        print(f"Robot spawned at position: {base_pos}")
         self.current_step = 0
         return self._get_obs(), {}
 
@@ -38,14 +37,23 @@ class simpleBipedEnv(gym.Env):
             action = np.asarray(action, dtype=np.float32)
             if action.shape[0] != num_joints:
                 raise ValueError(f"Action shape {action.shape} does not match number of joints {num_joints}")
-            
+
         self.last_action = action
+
+        # Get current joint positions
+        joint_states = p.getJointStates(self.robot_id, range(num_joints))
+        current_positions = np.array([state[0] for state in joint_states], dtype=np.float32)
+
+        # Apply relative change to joint angles
+        delta = action * 0.05  # scale step size as needed
+        target_positions = current_positions + delta
 
         p.setJointMotorControlArray(
             bodyUniqueId=self.robot_id,
             jointIndices=list(range(num_joints)),
-            controlMode=p.TORQUE_CONTROL,
-            forces=action.tolist()
+            controlMode=p.POSITION_CONTROL,
+            targetPositions=target_positions,
+            forces=[200] * num_joints  # max force
         )
         p.stepSimulation()
         obs = self._get_obs()
@@ -68,17 +76,20 @@ class simpleBipedEnv(gym.Env):
 
     def _check_termination(self):
         base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
-        return base_pos[2] < 0.5  # fallen
+        return base_pos[2] < 0.2 or base_pos[2] > 1  # fallen
 
     def _compute_reward(self):
         base_pos, _ = p.getBasePositionAndOrientation(self.robot_id)
         base_vel, _ = p.getBaseVelocity(self.robot_id)
 
         forward_reward = base_vel[0]        # reward x velocity
-        alive_bonus = 0.5                   # encourage staying up
+        if not self._check_termination(): 
+            alive_bonus = 1
+        else: 
+            alive_bonus = -500
         torque_penalty = 0.001 * np.sum(np.square(self.last_action))
 
-        print(forward_reward, alive_bonus, torque_penalty)
+        #print(forward_reward, alive_bonus, torque_penalty)
 
         return forward_reward + alive_bonus - torque_penalty
 
