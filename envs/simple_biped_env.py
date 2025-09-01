@@ -76,7 +76,7 @@ class simpleBipedEnv(gym.Env):
 
     def _check_termination(self):
         base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
-        return base_pos[2] < 0.2 or base_pos[2] > 1  # fallen
+        return base_pos[2] < 0.2  or base_pos[2] > 1.5  # fallen
 
     def _compute_reward(self):
         base_pos, _ = p.getBasePositionAndOrientation(self.robot_id)

@@ -1,21 +1,34 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from stable_baselines3 import PPO
+from stable_baselines3 import DDPG, PPO
 from envs.simple_biped_env import simpleBipedEnv
 from stable_baselines3.common.vec_env import DummyVecEnv
+import gymnasium as gym
+from gymnasium.envs.registration import register
+
+from simple_biped_env import simpleBipedEnv
+
+register(
+    id='simpleBiped-v0',
+    entry_point='envs.simple_biped_env:simpleBipedEnv',
+    max_episode_steps=10000,
+)
 
 def train():
-    env = DummyVecEnv([lambda: simpleBipedEnv(render=False)])
-    model = PPO("MlpPolicy", env, verbose=1 )
-    model.learn(total_timesteps=100000)
-    model.save("models/humanoid_ppo")
+    LOG_DIR = "./logs/"
+    env = gym.make('simpleBiped-v0', render=False)
+    model = DDPG("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
+    model.learn(total_timesteps=10000000)
+    model.save("../models/humanoid_ppo")
     env.close()
+
+    
 
 def run():
     env = DummyVecEnv([lambda: simpleBipedEnv(render=True)])
     model = PPO.load("models/humanoid_ppo", env=env)
-    for _ in range(3):  # Run 3 episodes
+    for _ in range(5):  # Run 3 episodes
         result = env.reset()
         if isinstance(result, tuple):
             obs, info = result
@@ -30,7 +43,7 @@ def run():
             obs, reward, done, _ = env.step(action)
             total_reward += reward
         print(f"Episode finished. Total reward: {total_reward}")
-        env.close()
+    env.close()
 
 def test():
     env = simpleBipedEnv(render=True)
@@ -45,6 +58,6 @@ def test():
         print(f"Test episode finished. Total reward: {total_reward}")
     env.close()
 
-#train()
-run()
+train()
+#run()
 #test()
