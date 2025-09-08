@@ -17,7 +17,7 @@ register(
 
 def train_PPO():
     LOG_DIR = "./logs/"
-    env = gym.make('simpleBiped-v0', render=False)
+    env = gym.make('simpleBiped-v0', render=True)
     model = PPO("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
     model.learn(total_timesteps=500000)
     model.save("../models/humanoid_ppo")
@@ -25,7 +25,7 @@ def train_PPO():
 
 def train_DDPG():
     LOG_DIR = "./logs/"
-    env = gym.make('simpleBiped-v0', render=False)
+    env = gym.make('simpleBiped-v0', render=True)
     model = DDPG("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
     model.learn(total_timesteps=10000000)
     model.save("../models/humanoid_ddpg")

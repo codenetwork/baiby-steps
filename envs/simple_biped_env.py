@@ -42,7 +42,7 @@ class simpleBipedEnv(gym.Env):
         else:
             self.off_ground_counter = 0
 
-        airborne_penalty = -5 if self.off_ground_counter > 20 else 0  # tune threshold & penalty
+        airborne_penalty = -10 if self.off_ground_counter > 500 else 0  # tune threshold & penalty
 
         return forward_reward + alive_bonus + airborne_penalty
 
