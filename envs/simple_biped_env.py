@@ -72,7 +72,7 @@ class simpleBipedEnv(gym.Env):
         current_positions = np.array([state[0] for state in joint_states], dtype=np.float32)
 
         # Apply relative change to joint angles
-        delta = action * 0.05  # scale step size as needed
+        delta = action * 0.2  # scale step size as needed
         target_positions = current_positions + delta
 
         p.setJointMotorControlArray(
@@ -106,7 +106,7 @@ class simpleBipedEnv(gym.Env):
         return base_pos[2] < 0.2  or base_pos[2] > 1.5  # fallen
 
     def render(self):
-        if self.render_mode:
+        if self.render_mode == "human":
             if hasattr(self, 'robot_id'):
                 base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
                 p.resetDebugVisualizerCamera(
@@ -115,8 +115,6 @@ class simpleBipedEnv(gym.Env):
                     cameraPitch=-30,
                     cameraTargetPosition=base_pos
                 )
-        else:
-            pass
 
     def close(self):
         p.disconnect()
