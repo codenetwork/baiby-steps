@@ -9,15 +9,42 @@ class simpleBipedEnv(gym.Env):
         super(simpleBipedEnv, self).__init__()
         self.render_mode = render
         self.physicsClient = p.connect(p.GUI if render else p.DIRECT)
-        self.robot_id = p.loadURDF("walkers/simple_biped.urdf", [0, 0, 1.0])
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        self.robot_id = p.loadURDF("walkers/simple_biped.urdf", [0, 0, 1.0])
+        self.plane_id = p.loadURDF("plane.urdf")
 
-        num_joints = 4  # left_hip, right_hip, left_knee, right_knee
+        # Find foot link indices (adjust names to match your URDF!)
+        self.left_foot = 1   # replace with actual index
+        self.right_foot = 3  # replace with actual index
+
+        num_joints = 4
         self.action_space = spaces.Box(low=-1, high=1, shape=(num_joints,), dtype=np.float32)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(2*num_joints + 6,), dtype=np.float32)
         self.max_steps = max_steps
         self.current_step = 0
         self.last_action = None
+        self.off_ground_counter = 0   # track consecutive steps with no contacts
+
+    def _feet_in_contact(self):
+        left_contacts = p.getContactPoints(self.robot_id, self.plane_id, linkIndexA=self.left_foot)
+        right_contacts = p.getContactPoints(self.robot_id, self.plane_id, linkIndexA=self.right_foot)
+        return len(left_contacts) > 0, len(right_contacts) > 0
+
+    def _compute_reward(self):
+        base_pos, _ = p.getBasePositionAndOrientation(self.robot_id)
+        forward_reward = base_pos[0]
+        alive_bonus = 1 if not self._check_termination() else -500
+
+        # --- Penalize if both feet off ground for too long ---
+        left_contact, right_contact = self._feet_in_contact()
+        if not left_contact and not right_contact:
+            self.off_ground_counter += 1
+        else:
+            self.off_ground_counter = 0
+
+        airborne_penalty = -5 if self.off_ground_counter > 20 else 0  # tune threshold & penalty
+
+        return forward_reward + alive_bonus + airborne_penalty
 
 
 
@@ -77,22 +104,6 @@ class simpleBipedEnv(gym.Env):
     def _check_termination(self):
         base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
         return base_pos[2] < 0.2  or base_pos[2] > 1.5  # fallen
-
-    def _compute_reward(self):
-        base_pos, _ = p.getBasePositionAndOrientation(self.robot_id)
-        base_vel, _ = p.getBaseVelocity(self.robot_id)
-
-        forward_reward = base_vel[0]        # reward x velocity
-        if not self._check_termination(): 
-            alive_bonus = 1
-        else: 
-            alive_bonus = -500
-        torque_penalty = 0.001 * np.sum(np.square(self.last_action))
-
-        #print(forward_reward, alive_bonus, torque_penalty)
-
-        return forward_reward + alive_bonus - torque_penalty
-
 
     def render(self):
         if self.render_mode:

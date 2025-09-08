@@ -15,15 +15,21 @@ register(
     max_episode_steps=10000,
 )
 
-def train():
+def train_PPO():
+    LOG_DIR = "./logs/"
+    env = gym.make('simpleBiped-v0', render=False)
+    model = PPO("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
+    model.learn(total_timesteps=500000)
+    model.save("../models/humanoid_ppo")
+    env.close()
+
+def train_DDPG():
     LOG_DIR = "./logs/"
     env = gym.make('simpleBiped-v0', render=False)
     model = DDPG("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
     model.learn(total_timesteps=10000000)
-    model.save("../models/humanoid_ppo")
+    model.save("../models/humanoid_ddpg")
     env.close()
-
-    
 
 def run():
     env = DummyVecEnv([lambda: simpleBipedEnv(render=True)])
@@ -58,6 +64,7 @@ def test():
         print(f"Test episode finished. Total reward: {total_reward}")
     env.close()
 
-train()
+train_PPO()
+#train_DDPG()
 #run()
 #test()
