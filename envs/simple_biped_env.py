@@ -6,10 +6,10 @@ import numpy as np
 import os
 
 class simpleBipedEnv(gym.Env):
-    def __init__(self, render=False, max_steps=10000):
+    def __init__(self, render_mode=None, max_steps=10000):
         super(simpleBipedEnv, self).__init__()
-        self.render_mode = render
-        self.physicsClient = p.connect(p.GUI if render else p.DIRECT)
+        self.render_mode = render_mode
+        self.physicsClient = p.connect(p.GUI if render_mode == "human" else p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         walker_urdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../walkers/simple_biped.urdf'))
         self.robot_id = p.loadURDF(walker_urdf_path, [0, 0, 1.0])
@@ -63,6 +63,8 @@ class simpleBipedEnv(gym.Env):
 
     def step(self, action):
         num_joints = p.getNumJoints(self.robot_id)
+        if self.render_mode == 'human':
+            self.render()
         if np.isscalar(action) or (isinstance(action, np.ndarray) and action.shape == (1,)):
             action = np.full((num_joints,), action if np.isscalar(action) else action[0], dtype=np.float32)
         else:
@@ -90,12 +92,12 @@ class simpleBipedEnv(gym.Env):
         p.stepSimulation()
         obs = self._get_obs()
         reward = self._compute_reward()
-        done = self._check_termination()
+        terminated = self._check_termination()
 
         self.current_step += 1
         truncated = self.current_step >= self.max_steps
 
-        return obs, reward, done, truncated, {}
+        return obs, reward, terminated, truncated, {}
 
     def _get_obs(self):
         joint_states = p.getJointStates(self.robot_id, range(p.getNumJoints(self.robot_id)))
@@ -111,7 +113,15 @@ class simpleBipedEnv(gym.Env):
         return base_pos[2] < 0.2  or base_pos[2] > 1.5  # fallen
 
     def render(self):
-        if self.render_mode:
+        if self.render_mode is None:
+            assert self.spec is not None
+            gym.logger.warn(
+                "You are calling render method without specifying any render mode. "
+                "You can specify the render_mode at initialization, "
+                f'e.g. gym.make("{self.spec.id}", render_mode="human")'
+            )
+            return
+        if self.render_mode == "human":
             if hasattr(self, 'robot_id'):
                 base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
                 p.resetDebugVisualizerCamera(
@@ -120,8 +130,6 @@ class simpleBipedEnv(gym.Env):
                     cameraPitch=-30,
                     cameraTargetPosition=base_pos
                 )
-        else:
-            pass
 
     def close(self):
         p.disconnect()
