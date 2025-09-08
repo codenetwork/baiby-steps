@@ -17,9 +17,19 @@ register(
 
 def train_PPO():
     LOG_DIR = "./logs/"
+    CHECKPOINT_DIR = "../models/ppo_checkpoints/"
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     env = gym.make('simpleBiped-v0', render=False)
     model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.001, device="auto", tensorboard_log=LOG_DIR)
-    model.learn(total_timesteps=500000)
+
+    # Add checkpoint callback
+    from stable_baselines3.common.callbacks import CheckpointCallback
+    checkpoint_callback = CheckpointCallback(
+        save_freq=100_000,
+        save_path=CHECKPOINT_DIR,
+        name_prefix="ppo_model"
+    )
+    model.learn(total_timesteps=5_000_000, callback=checkpoint_callback)
     model.save("../models/humanoid_ppo")
     env.close()
 

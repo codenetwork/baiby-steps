@@ -3,6 +3,7 @@ from gymnasium import spaces
 import pybullet as p
 import pybullet_data
 import numpy as np
+import os
 
 class simpleBipedEnv(gym.Env):
     def __init__(self, render=False, max_steps=10000):
@@ -10,7 +11,8 @@ class simpleBipedEnv(gym.Env):
         self.render_mode = render
         self.physicsClient = p.connect(p.GUI if render else p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        self.robot_id = p.loadURDF("walkers/simple_biped.urdf", [0, 0, 1.0])
+        walker_urdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../walkers/simple_biped.urdf'))
+        self.robot_id = p.loadURDF(walker_urdf_path, [0, 0, 1.0])
         self.plane_id = p.loadURDF("plane.urdf")
 
         # Find foot link indices (adjust names to match your URDF!)
