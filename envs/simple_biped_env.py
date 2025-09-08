@@ -50,6 +50,9 @@ class simpleBipedEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         p.resetBasePositionAndOrientation(self.robot_id, [0,0,1], [0,0,0,1])
+        num_joints = p.getNumJoints(self.robot_id)
+        for j in range(num_joints):
+            p.resetJointState(self.robot_id, j, targetValue=0.0, targetVelocity=0.0)
         p.setGravity(0, 0, -9.8)
         plane_id = p.loadURDF("plane.urdf")
         base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
