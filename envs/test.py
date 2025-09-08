@@ -17,8 +17,8 @@ register(
 
 def train_PPO():
     LOG_DIR = "./logs/"
-    env = gym.make('simpleBiped-v0', render=True)
-    model = PPO("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
+    env = gym.make('simpleBiped-v0', render=False)
+    model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.001, device="auto", tensorboard_log=LOG_DIR)
     model.learn(total_timesteps=500000)
     model.save("../models/humanoid_ppo")
     env.close()
