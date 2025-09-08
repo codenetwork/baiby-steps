@@ -106,7 +106,7 @@ class simpleBipedEnv(gym.Env):
         return base_pos[2] < 0.2  or base_pos[2] > 1.5  # fallen
 
     def render(self):
-        if self.render_mode == "human":
+        if self.render_mode:
             if hasattr(self, 'robot_id'):
                 base_pos = p.getBasePositionAndOrientation(self.robot_id)[0]
                 p.resetDebugVisualizerCamera(
@@ -115,6 +115,8 @@ class simpleBipedEnv(gym.Env):
                     cameraPitch=-30,
                     cameraTargetPosition=base_pos
                 )
+        else:
+            pass
 
     def close(self):
         p.disconnect()
