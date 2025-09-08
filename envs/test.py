@@ -17,29 +17,38 @@ register(
 
 def train_PPO():
     LOG_DIR = "./logs/"
-    CHECKPOINT_DIR = "../models/ppo_checkpoints/"
+    CHECKPOINT_DIR = "./models/ppo_checkpoints/"
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
     env = gym.make('simpleBiped-v0', render=False)
-    model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.001, device="auto", tensorboard_log=LOG_DIR)
 
-    # Add checkpoint callback
-    from stable_baselines3.common.callbacks import CheckpointCallback
-    checkpoint_callback = CheckpointCallback(
-        save_freq=100_000,
-        save_path=CHECKPOINT_DIR,
-        name_prefix="ppo_model"
+    model = PPO(
+        "MlpPolicy",
+        env,
+        verbose=1,
+        learning_rate=0.001,
+        device="auto",
+        tensorboard_log=LOG_DIR
     )
-    model.learn(total_timesteps=5_000_000, callback=checkpoint_callback)
-    model.save("../models/humanoid_ppo")
-    env.close()
 
-def train_DDPG():
-    LOG_DIR = "./logs/"
-    env = gym.make('simpleBiped-v0', render_mode=True)
-    model = DDPG("MlpPolicy", env, verbose=1, device="auto", tensorboard_log=LOG_DIR)
-    model.learn(total_timesteps=10000000)
-    model.save("../models/humanoid_ddpg")
+    from stable_baselines3.common.callbacks import EvalCallback
+    eval_env = gym.make('simpleBiped-v0', render=False)
+    eval_callback = EvalCallback(
+        eval_env,
+        best_model_save_path=CHECKPOINT_DIR,
+        log_path=CHECKPOINT_DIR,
+        eval_freq=50_000,     # run evaluation every 50k steps
+        deterministic=True,
+        render=False,
+        verbose=1
+    )
+
+    model.learn(total_timesteps=5_000_000, callback=eval_callback)
+
+    model.save("./models/humanoid_ppo")
     env.close()
+    eval_env.close()
+
 
 def run():
     env = DummyVecEnv([lambda: simpleBipedEnv(render=True)])
